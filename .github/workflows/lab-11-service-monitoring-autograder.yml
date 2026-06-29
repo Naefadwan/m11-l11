@@ -72,24 +72,24 @@ jobs:
             pip install -r requirements.txt
           fi
       - name: Wait for services
-      run: |
-        echo "Waiting for Neo4j..."
-        for i in $(seq 1 60); do
-          if nc -z localhost 7687 2>/dev/null; then
-            echo "Neo4j port is open"
-            break
-          fi
-          sleep 1
-        done
-        echo "Waiting for Weaviate..."
-        for i in $(seq 1 60); do
-          if curl -fsS http://localhost:8080/v1/.well-known/ready >/dev/null 2>&1; then
-            echo "Weaviate is ready"
-            break
-          fi
-          sleep 1
-        done
-        sleep 5  # Additional buffer time
+        run: |
+          echo "Waiting for Neo4j..."
+          for i in $(seq 1 60); do
+            if nc -z localhost 7687 2>/dev/null; then
+              echo "Neo4j port is open"
+              break
+            fi
+            sleep 1
+          done
+          echo "Waiting for Weaviate..."
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/v1/.well-known/ready >/dev/null 2>&1; then
+              echo "Weaviate is ready"
+              break
+            fi
+            sleep 1
+          done
+          sleep 5  # Additional buffer time
       - name: Seed Neo4j
         env:
           NEO4J_URI: bolt://localhost:7687
