@@ -108,6 +108,10 @@ Open a PR within your fork. The PR description must include:
 3. A short paragraph (~100 words) describing one design decision you made.
 4. Paste your PR URL into TalentLMS → Module 11 → Lab 11 to submit this assignment.
 
+## Observability
+
+The backend incorporates three Prometheus metric families: `requests_total` (a Counter tracking HTTP request volume labeled by request path and HTTP status code), `request_latency_seconds` (a Histogram tracking request processing time labeled by path), and `inflight_requests` (a Gauge measuring active concurrent requests). For the latency histogram, we utilize the default Prometheus buckets because they are well-suited to standard web applications, spanning sub-millisecond durations up to 10 seconds to cover both typical fast endpoints and slower cold-cache LLM operations. To read these metrics, you can scrape or query the `/metrics` endpoint, which exposes the current values formatted according to the OpenMetrics text standard.
+
 ---
 
 ## License
