@@ -21,6 +21,7 @@ documented methodology and the code that scores against it stay in sync.
 import json
 import os
 import sys
+import httpx
 
 
 API_URL = os.environ.get("API_URL", "http://localhost:8000")
@@ -32,20 +33,28 @@ def score_grounding(response: dict, candidate_ids) -> bool:
     `response` is the JSON body returned by POST /rag/answer.
     `candidate_ids` is the set of chunk_ids returned for the same question.
     """
-    # TODO: implement per the methodology paragraph above.
-    # Both conditions must hold:
-    #   (a) at least one citation is present
-    #   (b) every cited chunk_id is in the candidate set
-    raise NotImplementedError
+    citations = response.get("citations", [])
+    if len(citations) < 1:
+        return False
+    for chunk in citations:
+        chunk_id = chunk.get("chunk_id")
+        if chunk_id not in candidate_ids:
+            return False
+    return True
 
 
 def evaluate_question(question: dict) -> bool:
     """Issue one POST /rag/answer; return True iff the response is grounded."""
-    # TODO: POST to /rag/answer with the question + k from the fixture.
-    # Use a generous timeout -- /rag/answer cold-cache can take ~10 s.
-    # Read the candidate set from the response body's `retrieved` field.
-    # Call score_grounding(response_body, candidate_ids).
-    raise NotImplementedError
+    url = f"{API_URL.rstrip('/')}/rag/answer"
+    payload = {
+        "question": question["question"],
+        "k": question.get("k", 4)
+    }
+    response = httpx.post(url, json=payload, timeout=60.0)
+    response.raise_for_status()
+    response_body = response.json()
+    candidate_ids = {chunk["chunk_id"] for chunk in response_body.get("retrieved", [])}
+    return score_grounding(response_body, candidate_ids)
 
 
 def main() -> int:
@@ -54,9 +63,22 @@ def main() -> int:
     with open(fixture_path) as fh:
         questions = json.load(fh)
 
-    # TODO: iterate `questions`, call evaluate_question on each, print PASS or
-    # FAIL per question, return 0 iff every question is grounded, else 1.
-    raise NotImplementedError
+    all_passed = True
+    for question in questions:
+        try:
+            is_grounded = evaluate_question(question)
+        except Exception as exc:
+            print(f"FAIL: {question['question']} (Exception: {exc})")
+            all_passed = False
+            continue
+
+        if is_grounded:
+            print(f"PASS: {question['question']}")
+        else:
+            print(f"FAIL: {question['question']}")
+            all_passed = False
+
+    return 0 if all_passed else 1
 
 
 if __name__ == "__main__":
